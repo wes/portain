@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 struct Sidebar: View {
     @EnvironmentObject private var state: AppState
 
@@ -33,6 +34,7 @@ struct Sidebar: View {
     }
 }
 
+@MainActor
 private struct SidebarItem: View {
     @EnvironmentObject private var state: AppState
     let tab: Tab
@@ -94,6 +96,7 @@ private struct SidebarItem: View {
     }
 }
 
+@MainActor
 private struct StatusFooter: View {
     @EnvironmentObject private var state: AppState
 

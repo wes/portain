@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 struct ContentView: View {
     @EnvironmentObject private var state: AppState
     @State private var selectedContainer: DockerContainer.ID?
@@ -62,6 +63,7 @@ struct ContentView: View {
 }
 
 /// Routes the detail pane based on the active tab + selection.
+@MainActor
 private struct DetailPane: View {
     @EnvironmentObject private var state: AppState
     @Binding var selectedContainer: DockerContainer.ID?

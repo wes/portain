@@ -2,6 +2,7 @@ import SwiftUI
 
 // MARK: - List
 
+@MainActor
 struct PortsList: View {
     @EnvironmentObject private var state: AppState
     @Binding var selection: ListeningPort.ID?
@@ -87,6 +88,7 @@ struct PortsList: View {
 }
 
 /// Process name (or backing container name) plus a docker badge, on one line.
+@MainActor
 private struct PortProcessCell: View {
     let port: ListeningPort
     let state: AppState
@@ -111,6 +113,7 @@ private struct PortProcessCell: View {
 }
 
 /// Inline kill button with confirmation, used in the table's Actions column.
+@MainActor
 private struct PortActionsCell: View {
     let port: ListeningPort
     let state: AppState
@@ -141,6 +144,7 @@ private struct PortActionsCell: View {
     }
 }
 
+@MainActor
 struct PortActionsMenu: View {
     let port: ListeningPort
     let state: AppState
@@ -164,6 +168,7 @@ struct PortActionsMenu: View {
 }
 
 /// Context-menu actions when multiple ports are selected.
+@MainActor
 struct PortBulkActionsMenu: View {
     let ports: [ListeningPort]
     let state: AppState
@@ -186,6 +191,7 @@ struct PortBulkActionsMenu: View {
 
 // MARK: - Detail
 
+@MainActor
 struct PortDetail: View {
     @EnvironmentObject private var state: AppState
     let port: ListeningPort

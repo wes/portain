@@ -2,6 +2,7 @@ import SwiftUI
 
 // MARK: - List
 
+@MainActor
 struct ContainersList: View {
     @EnvironmentObject private var state: AppState
     @Binding var selection: DockerContainer.ID?
@@ -121,6 +122,7 @@ private struct ProjectBucket: Identifiable {
 }
 
 /// A Finder-style folder header for a compose project.
+@MainActor
 private struct FolderLabel: View {
     let name: String
     let containers: [DockerContainer]
@@ -148,6 +150,7 @@ private struct FolderLabel: View {
 }
 
 /// A section header with a colored dot and item count.
+@MainActor
 private struct GroupHeader: View {
     let title: String
     let count: Int
@@ -172,6 +175,7 @@ private struct GroupHeader: View {
     }
 }
 
+@MainActor
 private struct ContainerRow: View {
     @EnvironmentObject private var state: AppState
     let container: DockerContainer
@@ -284,6 +288,7 @@ private struct ContainerRow: View {
 }
 
 /// Context-menu actions shared by row + detail.
+@MainActor
 struct ContainerActionsMenu: View {
     @EnvironmentObject private var state: AppState
     let container: DockerContainer
@@ -313,6 +318,7 @@ struct ContainerActionsMenu: View {
 
 // MARK: - Detail
 
+@MainActor
 struct ContainerDetail: View {
     @EnvironmentObject private var state: AppState
     let containerID: String
@@ -446,6 +452,7 @@ struct ContainerDetail: View {
     }
 }
 
+@MainActor
 struct SectionHeader: View {
     let title: String
     init(_ title: String) { self.title = title }
@@ -457,6 +464,7 @@ struct SectionHeader: View {
     }
 }
 
+@MainActor
 private struct LogsSheet: View {
     @EnvironmentObject private var state: AppState
     @Environment(\.dismiss) private var dismiss
