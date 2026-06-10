@@ -49,8 +49,29 @@ cp "$ROOT/scripts/Info.plist" "$CONTENTS/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$CONTENTS/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$CONTENTS/Info.plist"
 
-# Ad-hoc signature so Gatekeeper allows a local launch.
-codesign --force --deep --sign - "$BUNDLE" >/dev/null 2>&1 || true
+# --- Code signing ----------------------------------------------------------
+# Set DEVELOPER_ID_APP to a "Developer ID Application: …" identity to produce a
+# distributable, notarizable build. Otherwise we ad-hoc sign for local use.
+if [ -n "${DEVELOPER_ID_APP:-}" ]; then
+    echo "▸ Signing with Developer ID: $DEVELOPER_ID_APP"
+    codesign --force --deep --timestamp --options runtime \
+        --sign "$DEVELOPER_ID_APP" "$BUNDLE"
+else
+    echo "▸ Ad-hoc signing (not notarizable — see docs/NOTARIZING.md)"
+    codesign --force --deep --sign - "$BUNDLE" >/dev/null 2>&1 || true
+fi
+
+# --- Notarization (optional) -----------------------------------------------
+# Set NOTARY_PROFILE to a profile created with `xcrun notarytool store-credentials`
+# to notarize and staple the app before packaging.
+if [ -n "${NOTARY_PROFILE:-}" ]; then
+    echo "▸ Notarizing (this can take a minute)…"
+    NZ="$(mktemp -d)/notarize.zip"
+    ditto -c -k --keepParent "$BUNDLE" "$NZ"
+    xcrun notarytool submit "$NZ" --keychain-profile "$NOTARY_PROFILE" --wait
+    xcrun stapler staple "$BUNDLE"
+    echo "  stapled ✓"
+fi
 
 # --- Package ---------------------------------------------------------------
 rm -rf "$DIST"

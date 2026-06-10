@@ -30,11 +30,24 @@ Built entirely in Swift + SwiftUI. **Read-only by design** — it shells out to
 1. Grab the latest **`Portain-x.y.z.dmg`** from the
    [Releases page](https://github.com/wes/portain/releases/latest).
 2. Open the `.dmg` and drag **Portain** into **Applications**.
-3. First launch only: because the app is open-source and not notarized,
-   right-click **Portain → Open**, then confirm. (Or run
-   `xattr -dr com.apple.quarantine /Applications/Portain.app`.)
+3. **First launch only.** Portain is open-source and not notarized by Apple, so
+   macOS blocks it the first time with *"Apple could not verify…"*. To allow it,
+   pick whichever you prefer:
+   - **System Settings → Privacy & Security**, scroll to the Portain message and
+     click **Open Anyway**, then **Open**. *(On macOS 15+ the old right-click →
+     Open shortcut no longer works for un-notarized apps.)*
+   - **Or** run this once in Terminal:
+     ```sh
+     xattr -dr com.apple.quarantine /Applications/Portain.app
+     ```
 
 The app is a **universal binary** — it runs natively on Apple Silicon and Intel.
+
+> **Why the warning?** Removing it entirely requires notarizing the app with a
+> paid Apple Developer ID. The steps above are the standard, safe way to run any
+> un-notarized open-source Mac app. See
+> [`docs/NOTARIZING.md`](docs/NOTARIZING.md) if you want to publish signed,
+> notarized builds.
 
 **Build from source**
 
