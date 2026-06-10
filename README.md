@@ -15,9 +15,13 @@ Built entirely in Swift + SwiftUI. **Read-only by design** — it shells out to
 
 > Replace `wes/portain` in the badges and links with your repository path.
 
-<!-- Add a screenshot at docs/screenshot.png and uncomment:
-![Portain](docs/screenshot.png)
--->
+### Containers
+
+![Portain — Containers view](screenshots/containers.png)
+
+### Ports
+
+![Portain — Ports view](screenshots/ports.png)
 
 ## Install
 
