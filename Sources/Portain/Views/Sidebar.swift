@@ -110,6 +110,12 @@ private struct StatusFooter: View {
         return state.dockerDaemonUp ? "Docker connected" : "Docker daemon down"
     }
 
+    /// App marketing version from the bundle; falls back when run unbundled
+    /// (e.g. via `swift run` during development).
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Divider()
@@ -118,12 +124,22 @@ private struct StatusFooter: View {
                 Text(dockerText)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-            }
-            if let last = state.lastRefresh {
-                Text("Updated \(last.formatted(date: .omitted, time: .standard))")
+                Spacer()
+                HStack(spacing: 5) {
+                Text("Portain")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Text("v\(appVersion)")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
             }
+            }
+            // if let last = state.lastRefresh {
+            //     Text("Updated \(last.formatted(date: .omitted, time: .standard))")
+            //         .font(.system(size: 10))
+            //         .foregroundStyle(.tertiary)
+            // }
+            
         }
         .padding(.horizontal, 14)
         .padding(.bottom, 14)

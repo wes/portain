@@ -139,6 +139,14 @@ final class AppState: ObservableObject {
         }
     }
 
+    /// Applies an action to every container in a group (e.g. all containers in
+    /// a compose folder), skipping any already mid-action.
+    func perform(_ action: ContainerAction, onAll containers: [DockerContainer]) {
+        for container in containers {
+            perform(action, on: container)
+        }
+    }
+
     func fetchLogs(for container: DockerContainer) async -> String {
         await docker.logs(for: container.id)
     }

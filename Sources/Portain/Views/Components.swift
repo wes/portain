@@ -115,6 +115,39 @@ struct PortChip: View {
     }
 }
 
+/// Icon-only action button for detail-pane action bars, shared by the
+/// container and port inspectors so both read consistently. Primary and
+/// destructive actions are `prominent` (solid colored fill); neutral utility
+/// actions (Logs, Restart, Copy) use a tinted bordered style.
+struct DetailActionButton: View {
+    let title: String
+    let systemImage: String
+    var tint: Color = .accentColor
+    var prominent: Bool = true
+    let action: () -> Void
+
+    private var label: some View {
+        Image(systemName: systemImage)
+            .frame(width: 20)
+            .accessibilityLabel(title)
+    }
+
+    var body: some View {
+        Group {
+            if prominent {
+                Button(action: action) { label }
+                    .buttonStyle(.borderedProminent)
+                    .tint(tint)
+            } else {
+                Button(action: action) { label }
+                    .buttonStyle(.bordered)
+                    .tint(tint)
+            }
+        }
+        .help(title)
+    }
+}
+
 /// A circular toolbar-style action button used in detail panes.
 struct ActionButton: View {
     let title: String

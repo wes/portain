@@ -20,6 +20,11 @@ struct PortainApp: App {
                 Button("About Portain") { showAboutPanel() }
             }
             CommandGroup(after: .toolbar) {
+                Button("Containers") { state.tab = .containers }
+                    .keyboardShortcut("1", modifiers: .command)
+                Button("Ports") { state.tab = .ports }
+                    .keyboardShortcut("2", modifiers: .command)
+                Divider()
                 Button("Refresh") {
                     Task { await state.refresh() }
                 }

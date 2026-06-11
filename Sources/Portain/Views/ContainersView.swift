@@ -121,13 +121,36 @@ private struct ProjectBucket: Identifiable {
     var id: String { project ?? "__standalone__" }
 }
 
-/// A Finder-style folder header for a compose project.
+/// A Finder-style folder header for a compose project. Hovering reveals a
+/// single contextual button that starts or stops the whole folder at once.
 @MainActor
 private struct FolderLabel: View {
+    @EnvironmentObject private var state: AppState
     let name: String
     let containers: [DockerContainer]
+    @State private var hovering = false
 
     private var runningCount: Int { containers.filter { $0.state.isRunning }.count }
+
+    /// Containers currently using resources — the ones a "Stop All" targets.
+    private var activeContainers: [DockerContainer] { containers.filter { $0.state.isActive } }
+    /// Stopped containers that can be (re)started — the "Start All" targets.
+    private var startableContainers: [DockerContainer] {
+        containers.filter { !$0.state.isActive }
+    }
+    private var anyBusy: Bool { containers.contains { state.busyContainers.contains($0.id) } }
+    private var showHoverAction: Bool {
+        hovering && !anyBusy && (!activeContainers.isEmpty || !startableContainers.isEmpty)
+    }
+
+    private var countBadge: some View {
+        Text(verbatim: runningCount > 0 ? "\(runningCount)/\(containers.count)" : "\(containers.count)")
+            .font(.system(size: 10, weight: .semibold, design: .rounded))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 1)
+            .background(.quaternary, in: Capsule())
+    }
 
     var body: some View {
         HStack(spacing: 7) {
@@ -138,14 +161,46 @@ private struct FolderLabel: View {
                 .font(.system(size: 13, weight: .medium))
                 .lineLimit(1)
             Spacer(minLength: 6)
-            Text(verbatim: runningCount > 0 ? "\(runningCount)/\(containers.count)" : "\(containers.count)")
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 1)
-                .background(.quaternary, in: Capsule())
+            if anyBusy {
+                ProgressView().controlSize(.small)
+            } else {
+                // The count badge keeps a constant footprint; the hover action
+                // is overlaid on top so revealing it never shifts the header.
+                countBadge
+                    .opacity(showHoverAction ? 0 : 1)
+                    .overlay(alignment: .trailing) {
+                        if showHoverAction { folderAction }
+                    }
+            }
         }
         .padding(.vertical, 2)
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+    }
+
+    /// Start the whole folder when nothing is active, otherwise stop it.
+    @ViewBuilder
+    private var folderAction: some View {
+        if activeContainers.isEmpty {
+            folderButton("play.fill", help: "Start all in \(name)") {
+                state.perform(.start, onAll: startableContainers)
+            }
+        } else {
+            folderButton("stop.fill", help: "Stop all in \(name)") {
+                state.perform(.stop, onAll: activeContainers)
+            }
+        }
+    }
+
+    private func folderButton(_ icon: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .tint(.secondary)
+        .help(help)
     }
 }
 
@@ -195,11 +250,16 @@ private struct ContainerRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            if busy {
-                ProgressView().controlSize(.small).frame(width: 10)
-            } else {
-                StatusDot(color: container.state.color)
+            // Fixed-width status slot so swapping the dot for the busy spinner
+            // (or vice-versa) never nudges the rest of the row.
+            Group {
+                if busy {
+                    ProgressView().controlSize(.small)
+                } else {
+                    StatusDot(color: container.state.color)
+                }
             }
+            .frame(width: 12)
 
             // Name (flexes)
             Text(title)
@@ -217,14 +277,18 @@ private struct ContainerRow: View {
                 .truncationMode(.middle)
                 .frame(width: 138, alignment: .trailing)
 
-            // Ports / status column — constant footprint. Hover actions are
-            // overlaid on top so they never shift the row's layout.
-            portSummary
-                .frame(width: 104, alignment: .trailing)
-                .opacity(showHoverActions ? 0 : 1)
-                .overlay(alignment: .trailing) {
-                    if showHoverActions { quickActions }
+            // Ports / status column — constant 104×24 footprint. On hover we
+            // *swap in* the quick actions rather than overlaying them, so they
+            // render reliably even when the summary is empty (e.g. a stopped
+            // container with no published ports) and the row never shifts.
+            Group {
+                if showHoverActions {
+                    quickActions
+                } else {
+                    portSummary
                 }
+            }
+            .frame(width: 104, height: 24, alignment: .trailing)
         }
         .frame(height: 24)
         .padding(.vertical, 3)
@@ -238,10 +302,16 @@ private struct ContainerRow: View {
     private var portSummary: some View {
         let published = container.publishedPorts
         if published.isEmpty {
-            // Show the state label only while the container is active; a stopped
-            // container shows nothing here rather than a redundant "Stopped" tag.
-            if container.state.isActive {
+            // The left-hand status dot already conveys running/stopped, so we
+            // don't repeat "Running" or "Stopped" here. Only ambiguous active
+            // states whose dot color isn't self-explanatory (paused, restarting)
+            // get a text label.
+            if container.state.isActive && !container.state.isRunning {
                 Text(container.state.label)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(container.state.color)
+            }else{
+                Text("")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(container.state.color)
             }
@@ -264,26 +334,26 @@ private struct ContainerRow: View {
         HStack(spacing: 6) {
             switch container.state {
             case .running:
-                miniButton("stop.fill") { state.perform(.stop, on: container) }
+                miniButton("stop.fill", tint: .red) { state.perform(.stop, on: container) }
             case .paused:
-                miniButton("play.fill") { state.perform(.unpause, on: container) }
-                miniButton("stop.fill") { state.perform(.stop, on: container) }
+                miniButton("play.fill", tint: .green) { state.perform(.unpause, on: container) }
+                miniButton("stop.fill", tint: .red) { state.perform(.stop, on: container) }
             case .exited, .created, .dead:
-                miniButton("play.fill") { state.perform(.start, on: container) }
+                miniButton("play.fill", tint: .green) { state.perform(.start, on: container) }
             default:
                 portSummary
             }
         }
     }
 
-    private func miniButton(_ icon: String, action: @escaping () -> Void) -> some View {
+    private func miniButton(_ icon: String, tint: Color = .secondary, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 10, weight: .semibold))
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
-        .tint(.secondary)
+        .tint(tint)
     }
 }
 
@@ -411,44 +481,21 @@ struct ContainerDetail: View {
         HStack(spacing: 10) {
             switch container.state {
             case .running:
-                actionButton("Stop", "stop.fill", tint: .red) { state.perform(.stop, on: container) }
-                actionButton("Restart", "arrow.clockwise") { state.perform(.restart, on: container) }
-                actionButton("Kill", "bolt.fill", tint: .orange) { state.perform(.kill, on: container) }
+                DetailActionButton(title: "Stop", systemImage: "stop.fill", tint: .red) { state.perform(.stop, on: container) }
+                DetailActionButton(title: "Restart", systemImage: "arrow.clockwise", prominent: false) { state.perform(.restart, on: container) }
+                DetailActionButton(title: "Kill", systemImage: "bolt.fill", tint: .orange) { state.perform(.kill, on: container) }
             case .paused:
-                actionButton("Resume", "play.fill", tint: .green) { state.perform(.unpause, on: container) }
-                actionButton("Stop", "stop.fill", tint: .red) { state.perform(.stop, on: container) }
+                DetailActionButton(title: "Resume", systemImage: "play.fill", tint: .green) { state.perform(.unpause, on: container) }
+                DetailActionButton(title: "Stop", systemImage: "stop.fill", tint: .red) { state.perform(.stop, on: container) }
             default:
-                actionButton("Start", "play.fill", tint: .green) { state.perform(.start, on: container) }
+                DetailActionButton(title: "Start", systemImage: "play.fill", tint: .green) { state.perform(.start, on: container) }
             }
-            actionButton("Logs", "doc.text") { showLogs = true }
+            DetailActionButton(title: "Logs", systemImage: "doc.text", prominent: false) { showLogs = true }
             Spacer()
-            actionButton("Remove", "trash", tint: .red) { state.perform(.remove, on: container) }
+            DetailActionButton(title: "Remove", systemImage: "trash", tint: .red) { state.perform(.remove, on: container) }
         }
         .controlSize(.large)
         .disabled(busy)
-    }
-
-    @ViewBuilder
-    private func actionButton(_ title: String, _ icon: String, tint: Color? = nil,
-                              prominent: Bool = false, action: @escaping () -> Void) -> some View {
-        let label = Image(systemName: icon)
-            .frame(width: 20)
-            .accessibilityLabel(title)
-        if prominent {
-            Button(action: action) { label }
-                .buttonStyle(.borderedProminent)
-                .tint(tint ?? .accentColor)
-                .help(title)
-        } else if let tint {
-            Button(action: action) { label }
-                .buttonStyle(.bordered)
-                .tint(tint)
-                .help(title)
-        } else {
-            Button(action: action) { label }
-                .buttonStyle(.bordered)
-                .help(title)
-        }
     }
 }
 

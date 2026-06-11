@@ -292,13 +292,13 @@ struct PortDetail: View {
     @ViewBuilder
     private var actionBar: some View {
         HStack(spacing: 10) {
-            actionButton("Terminate", "xmark.circle.fill", tint: .orange) {
+            DetailActionButton(title: "Terminate", systemImage: "xmark.circle.fill", tint: .orange) {
                 state.killPort(port, force: false)
             }
-            actionButton("Force Kill", "bolt.fill", tint: .red) {
+            DetailActionButton(title: "Force Kill", systemImage: "bolt.fill", tint: .red) {
                 confirmForce = true
             }
-            actionButton("Copy PID", "doc.on.doc") {
+            DetailActionButton(title: "Copy PID", systemImage: "doc.on.doc", prominent: false) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString("\(port.pid)", forType: .string)
             }
@@ -311,26 +311,6 @@ struct PortDetail: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("SIGKILL can't be caught — the process won't get to clean up.")
-        }
-    }
-
-    /// Icon-only bordered button with a hover-highlight and tooltip, matching
-    /// the container detail action bar.
-    @ViewBuilder
-    private func actionButton(_ title: String, _ icon: String, tint: Color? = nil,
-                              action: @escaping () -> Void) -> some View {
-        let label = Image(systemName: icon)
-            .frame(width: 20)
-            .accessibilityLabel(title)
-        if let tint {
-            Button(action: action) { label }
-                .buttonStyle(.bordered)
-                .tint(tint)
-                .help(title)
-        } else {
-            Button(action: action) { label }
-                .buttonStyle(.bordered)
-                .help(title)
         }
     }
 }
