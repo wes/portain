@@ -4,6 +4,27 @@ All notable changes to Portain are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/), and the project aims to
 follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - 2026-06-13
+
+### Added
+- **Menu Bar App** - New lightweight companion app for quick port management
+  - Lives in the system menu bar (status bar) without a dock icon
+  - Shows all active ports in a dropdown menu
+  - One-click kill for any non-Docker process (with confirmation dialog)
+  - Docker ports displayed separately (view-only)
+  - Quick launcher to open the main Portain app
+  - Auto-refreshes port list every 5 seconds
+  - Minimal resource usage
+
+### Enhanced
+- Updated README with menu bar app documentation and usage instructions
+- Added new executable target `PortainMenuBar` to Package.swift
+
+### Technical
+- Created symlinks for shared code between main app and menu bar app
+- Menu bar app uses `NSStatusItem` for system integration
+- Implements `NSApp.setActivationPolicy(.accessory)` to hide from dock
+
 ## [1.0.0] - 2026-06-10
 
 First public release.
@@ -27,4 +48,5 @@ First public release.
 - Auto-refresh every 3s (toggleable), ⌘R to refresh now, live search.
 - Built entirely with SwiftUI — native sidebar, materials, and SF Symbols.
 
+[1.1.0]: https://github.com/wes/portain/releases/tag/v1.1.0
 [1.0.0]: https://github.com/wes/portain/releases/tag/v1.0.0

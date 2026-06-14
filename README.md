@@ -53,11 +53,29 @@ The app is a **universal binary** — it runs natively on Apple Silicon and Inte
 
 ```sh
 swift run                 # dev build, runs immediately
+swift run PortainMenuBar  # menu bar app (runs in system status bar)
 bash scripts/bundle.sh    # → Portain.app (ad-hoc signed, with icon)
 ```
 
 Requires macOS 14+ and the Swift toolchain. Docker is optional — the **Ports**
 view works without it.
+
+### Menu Bar App
+
+Portain now includes a lightweight menu bar companion app for quick port management:
+
+```sh
+swift run PortainMenuBar  # Runs in your menu bar (top-right of screen)
+```
+
+**Features:**
+- 🔌 **Quick Access** - See all active ports from your menu bar
+- 🎯 **One-Click Kill** - Click any port to terminate its process (with confirmation)
+- 🐳 **Docker Aware** - Shows Docker ports separately (view-only)
+- 🚀 **Launch Main App** - Quick launcher for the full Portain window
+- 🔄 **Auto Refresh** - Updates every 5 seconds automatically
+
+The menu bar app runs without a dock icon and provides the fastest way to free up ports when needed.
 
 ## Features
 
@@ -73,6 +91,15 @@ view works without it.
 - Native table of every listening TCP port: process, PID, type, address, user.
 - **Terminate (SIGTERM)** or **Force Kill (SIGKILL)**, one or many at once.
 - Each port cross-links to the Docker container that published it.
+
+**Menu Bar App** (New!)
+- Lightweight menu bar companion app for quick port management
+- Shows all active ports in a dropdown menu
+- **One-click kill** for any non-Docker process (with confirmation)
+- Docker ports shown for reference (non-killable)
+- Quick launcher for the main Portain app
+- Auto-refreshes every 5 seconds
+- Runs without dock icon for minimal distraction
 
 **Throughout**
 - Auto-refresh every 3s (toggleable), ⌘R to refresh now, live search.
