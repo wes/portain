@@ -1,0 +1,31 @@
+{
+  "name": "portain-tui",
+  "version": "1.0.0",
+  "description": "Portain terminal UI for managing Docker containers and listening ports",
+  "bin": {
+    "portain-tui": "src/index.tsx"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "tsconfig.json"
+  ],
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.tsx",
+    "prepare": "chmod +x src/index.tsx",
+    "prepublishOnly": "bun run check",
+    "publish:public": "npm publish --access public",
+    "check": "bunx tsc --noEmit"
+  },
+  "dependencies": {
+    "@opentui/core": "0.1.107",
+    "@opentui/react": "0.1.107",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.0",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}

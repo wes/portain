@@ -20,5 +20,8 @@ xcuserdata/
 # Claude / local tooling
 .claude/
 
+# Terminal UI dependencies
+/tui/node_modules/
+
 # macOS
 .DS_Store

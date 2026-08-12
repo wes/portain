@@ -60,6 +60,38 @@ bash scripts/bundle.sh    # → Portain.app (ad-hoc signed, with icon)
 Requires macOS 14+ and the Swift toolchain. Docker is optional — the **Ports**
 view works without it.
 
+### Terminal UI
+
+Portain also includes a fast companion terminal UI for containers and listening
+ports. It lives in [`tui/`](tui/) and does not modify the native app.
+
+**Simplest install (macOS with [Bun](https://bun.sh) installed):**
+
+```sh
+bunx portain-tui
+```
+
+Or install it globally:
+
+```sh
+bun add --global portain-tui
+portain-tui
+```
+
+**Run from this repository:**
+
+```sh
+cd tui
+bun install
+bun run start
+```
+
+Docker is required for the Containers tab; `lsof` (included with macOS) powers
+the Ports tab. Use `Tab` to switch views. Containers support start/stop,
+restart, and remove; Ports support SIGTERM and force SIGKILL. See
+[`tui/README.md`](tui/README.md) for all keyboard actions and npm publishing
+instructions.
+
 ### Menu Bar App
 
 Portain now includes a lightweight menu bar companion app for quick port management:
