@@ -32,10 +32,13 @@ The package is a Bun CLI, so Bun must be installed even when using `bunx` or a g
 - `Tab` / `←` / `→` switch between Containers and Ports
 - `↑` / `↓` or `j` / `k` select an item
 - Containers: `s` start/stop, `r` restart, `d` remove
+- Containers: `f` fold the compose project under the cursor, `Shift+f` fold the whole Running/Stopped section
 - Ports: `x` terminate (SIGTERM), `Shift+x` force kill (SIGKILL)
 - Ports: `r` refresh, `q` or `Esc` quit
 
-The view refreshes automatically every five seconds. Destructive actions ask for confirmation.
+The view refreshes automatically every five seconds. Destructive actions ask for confirmation — press `y` or `Enter` to go ahead, any other key to cancel.
+
+Containers are listed running-first, under a `RUNNING` and a `STOPPED` section, each still grouped by compose project. A project with some services up and some down appears in both sections.
 
 ## Publish (maintainers)
 

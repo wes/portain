@@ -1,6 +1,6 @@
 {
   "name": "portain",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Portain terminal UI for managing Docker containers and listening ports",
   "bin": {
     "portain": "src/index.tsx"
