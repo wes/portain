@@ -1,9 +1,9 @@
 {
-  "name": "portain-tui",
+  "name": "portain",
   "version": "1.0.0",
   "description": "Portain terminal UI for managing Docker containers and listening ports",
   "bin": {
-    "portain-tui": "src/index.tsx"
+    "portain": "src/index.tsx"
   },
   "files": [
     "src",

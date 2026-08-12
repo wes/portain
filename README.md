@@ -68,14 +68,14 @@ ports. It lives in [`tui/`](tui/) and does not modify the native app.
 **Simplest install (macOS with [Bun](https://bun.sh) installed):**
 
 ```sh
-bunx portain-tui
+bunx portain
 ```
 
 Or install it globally:
 
 ```sh
-bun add --global portain-tui
-portain-tui
+bun add --global portain
+portain
 ```
 
 **Run from this repository:**

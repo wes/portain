@@ -7,14 +7,14 @@ A terminal companion to the native Portain app, built with [OpenTUI](https://git
 Requires [Bun](https://bun.sh), Docker for the Containers tab, and `lsof` for Ports.
 
 ```sh
-bunx portain-tui
+bunx portain
 ```
 
 Or install globally:
 
 ```sh
-bun add --global portain-tui
-portain-tui
+bun add --global portain
+portain
 ```
 
 From a checkout:
@@ -46,4 +46,4 @@ npm version patch
 npm publish --access public
 ```
 
-The package name is `portain-tui`.
+The package name is `portain`.
