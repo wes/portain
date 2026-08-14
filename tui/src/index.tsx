@@ -338,37 +338,67 @@ async function containers(): Promise<Container[]> {
 		});
 }
 
+// A listener's identity: the same triple is used to dedupe lsof's output, to key
+// the drawn rows, and to keep the cursor on one process across a refresh.
+const portKey = (p: Pick<Port, "pid" | "address" | "port">) =>
+	`${p.pid}:${p.address}:${p.port}`;
+const familyDigit = (family: string) => (family === "IPv6" ? "6" : "4");
+
+// `t` (IPv4/IPv6) has to be in the field list. Without it lsof reports every row
+// as a bare "TCP" and a dual-stack bind becomes two indistinguishable rows —
+// which is what made the list look like it was repeating itself.
 async function ports(): Promise<Port[]> {
-	const r = await run("lsof", ["-nP", "-iTCP", "-sTCP:LISTEN", "-FpcLuPn"]);
+	const r = await run("lsof", ["-nP", "-iTCP", "-sTCP:LISTEN", "-FpcLuPnt"]);
 	if (!r.stdout && r.stderr) throw new Error(r.stderr.trim());
-	const result: Port[] = [];
+	const rows = new Map<string, Port>();
 	let pid = 0,
 		command = "",
 		user = "",
-		type = "TCP";
+		protocol = "TCP",
+		family = "";
 	for (const line of r.stdout.split("\n")) {
 		const tag = line[0],
 			value = line.slice(1);
 		if (tag === "p") pid = Number(value);
 		else if (tag === "c") command = value;
 		else if (tag === "L") user = value;
-		else if (tag === "P") type = value;
-		else if (tag === "t") type = "TCP" + (value.includes("6") ? "6" : "4");
+		// `t` and `P` are separate fields that both precede the `n` they describe,
+		// so they are tracked apart and joined only when a row is emitted. Folding
+		// them into one variable lets whichever arrives last win, and `P` arrives
+		// last — that is how the family was being lost.
+		else if (tag === "t") family = value;
+		else if (tag === "P") protocol = value;
 		else if (tag === "n") {
 			const match = value.match(/:(\d+)$/);
-			if (match)
-				result.push({
+			if (!match) continue;
+			const port = Number(match[1]);
+			const address = value.slice(0, -match[0].length) || "*";
+			// lsof reports one record per descriptor, not per listener: a dual-stack
+			// wildcard bind arrives twice under an identical name, and forked or
+			// SO_REUSEPORT servers dup one socket across many FDs. Collapse those
+			// onto a single row that names every family it covers ("TCP4/6").
+			// Distinct bind addresses (127.0.0.1 vs [::1]) still get their own rows —
+			// those really are two different listeners.
+			const key = portKey({ pid, address, port });
+			const existing = rows.get(key);
+			const digit = family ? familyDigit(family) : "";
+			if (existing) {
+				if (digit && !existing.type.includes(digit))
+					existing.type += `/${digit}`;
+			} else
+				rows.set(key, {
 					pid,
 					command,
 					user,
-					address: value.slice(0, -match[0].length) || "*",
-					port: Number(match[1]),
-					type,
+					address,
+					port,
+					type: protocol + digit,
 					docker: /docker|vpnkit|com\.docker/i.test(command),
 				});
+			family = "";
 		}
 	}
-	return result.sort((a, b) => a.port - b.port || a.pid - b.pid);
+	return [...rows.values()].sort((a, b) => a.port - b.port || a.pid - b.pid);
 }
 
 async function action(tab: Tab, item: Container | Port, key: string) {
@@ -426,6 +456,7 @@ function App() {
 	const refreshVersion = useRef(0);
 	const scrollBox = useRef<ScrollBoxRenderable | null>(null);
 	const anchorId = useRef("");
+	const portAnchor = useRef("");
 
 	const refresh = useCallback(async () => {
 		const version = ++refreshVersion.current;
@@ -495,10 +526,17 @@ function App() {
 				// is folded away) — stay where we are rather than landing on a hidden row.
 				if (candidate < 0 || candidate > limit) return current;
 				next = candidate;
-				if (tab !== "containers" || layout.slots[next]?.visible) {
+				// Each tab anchors to its own list. Writing the container anchor while
+				// moving through ports used to blank it, losing the container the
+				// cursor was following.
+				if (tab === "containers") {
+					if (!layout.slots[next]?.visible) continue;
 					anchorId.current = layout.items[next]?.id ?? "";
-					return next;
+				} else {
+					const row = portRows[next];
+					portAnchor.current = row ? portKey(row) : "";
 				}
+				return next;
 			}
 			return current;
 		});
@@ -516,6 +554,21 @@ function App() {
 			: -1;
 		if (restored >= 0) setContainerIndex(restored);
 		else if (here) anchorId.current = here.id;
+	});
+
+	// Ports are sorted by number, so a new low-numbered listener shifts every row
+	// below it and a bare index would leave the cursor on a different process.
+	// With a 5s auto-refresh and `x` bound to kill, that is a live footgun: follow
+	// the port the cursor was on and re-anchor only once it is gone.
+	useEffect(() => {
+		if (tab !== "ports") return;
+		const here = portRows[portIndex];
+		if (here && portKey(here) === portAnchor.current) return;
+		const restored = portAnchor.current
+			? portRows.findIndex((p) => portKey(p) === portAnchor.current)
+			: -1;
+		if (restored >= 0) setPortIndex(restored);
+		else if (here) portAnchor.current = portKey(here);
 	});
 
 	const toggleFold = (key: string) =>
@@ -565,11 +618,15 @@ function App() {
 			setTab((current) => (current === "containers" ? "ports" : "containers"));
 			return;
 		}
-		if (key.name === "left") {
+		// 1 and 2 jump straight to a tab, alongside the positional left/right.
+		// Neither digit collides with an action key, and both are safe to test here:
+		// the only handler above this point is the confirm guard, where any key that
+		// is not y/Enter cancels anyway.
+		if (key.name === "1" || key.name === "left") {
 			setTab("containers");
 			return;
 		}
-		if (key.name === "right") {
+		if (key.name === "2" || key.name === "right") {
 			setTab("ports");
 			return;
 		}
@@ -623,12 +680,12 @@ function App() {
 			<box style={{ flexDirection: "row", height: 3, alignItems: "center" }}>
 				<text content="  PORTAIN  " fg={theme.logo} />
 				<text
-					content={tab === "containers" ? "[CONTAINERS]" : " CONTAINERS "}
+					content={tab === "containers" ? "[1 CONTAINERS]" : " 1 CONTAINERS "}
 					fg={tab === "containers" ? theme.tabActive : theme.tabIdle}
 				/>
 				<text content=" " />
 				<text
-					content={tab === "ports" ? "[PORTS]" : " PORTS "}
+					content={tab === "ports" ? "[2 PORTS]" : " 2 PORTS "}
 					fg={tab === "ports" ? theme.tabActive : theme.tabIdle}
 				/>
 				<text content={loading ? "     syncing…" : ""} fg={theme.syncing} />
@@ -666,14 +723,13 @@ function App() {
 						/>
 					) : (
 						portRows.map((p, i) => (
-							// lsof lists IPv4 and IPv6 listeners separately, and for a
-							// wildcard bind they match on pid, port and address alike — so no
-							// field combination is a unique id. Key by position: the rows hold
-							// no local state and the list is rebuilt and re-sorted every
-							// refresh. A duplicated key here made React reuse the wrong row
-							// and repeat entries as ports disappeared.
+							// pid + address + port is unique by construction: ports() collapses
+							// lsof's per-descriptor records onto one row per listener, so the
+							// duplicate keys that forced an index key here can no longer occur.
+							// A stable identity key lets React reuse the right row as the list
+							// is re-sorted on each refresh.
 							<box
-								key={i}
+								key={portKey(p)}
 								style={{
 									flexDirection: "row",
 									height: 1,
