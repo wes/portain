@@ -3,6 +3,11 @@
 import { createCliRenderer, type ScrollBoxRenderable } from "@opentui/core";
 import { createRoot, useKeyboard, useRenderer } from "@opentui/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+// Read the version from the manifest rather than restating it here, so a
+// `npm version` bump cannot leave the status bar reporting a stale number. npm
+// always ships package.json in the tarball regardless of the `files` field, so
+// this resolves for a published install as well as from a source checkout.
+import pkg from "../package.json";
 
 // Every colour the UI draws with. Names describe the role, not the hue, so a
 // role can be retuned without hunting through JSX — several roles deliberately
@@ -48,6 +53,7 @@ const theme = {
 	hint: "#596579",
 	error: "#ff7373",
 	empty: "#8993a4",
+	version: "#596579",
 } as const;
 
 type Container = {
@@ -815,6 +821,11 @@ function App() {
 					}
 					fg={theme.hint}
 				/>
+				{/* Eats the slack between the hints and the version so the version sits
+				    flush right at any terminal width. flexShrink lets it collapse to
+				    nothing on a narrow terminal rather than pushing the version off. */}
+				<box style={{ flexGrow: 1, flexShrink: 1 }} />
+				<text content={`v${pkg.version} `} fg={theme.version} />
 			</box>
 		</box>
 	);
