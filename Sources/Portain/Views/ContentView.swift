@@ -51,6 +51,9 @@ struct ContentView: View {
                     Image(systemName: "timer")
                 }
                 .toggleStyle(.button)
+                // Neutral "on" state — the timer being armed isn't worth a
+                // saturated accent blob in the toolbar.
+                .tint(Color.secondary)
                 .help("Auto-refresh every 3s")
             }
         }

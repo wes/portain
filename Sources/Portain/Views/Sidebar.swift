@@ -77,7 +77,7 @@ private struct SidebarItem: View {
                 Image(systemName: icon)
                     .font(.system(size: 13, weight: .medium))
                     .frame(width: 20)
-                    .foregroundStyle(selected ? Color.accentColor : .secondary)
+                    .foregroundStyle(selected ? Color.primary : Color.secondary)
                 Text(title)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.primary)
@@ -88,7 +88,7 @@ private struct SidebarItem: View {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(selected ? Color.accentColor.opacity(0.14) : .clear)
+                    .fill(selected ? Color.primary.opacity(0.09) : .clear)
             )
             .contentShape(Rectangle())
         }

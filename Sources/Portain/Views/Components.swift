@@ -15,8 +15,12 @@ struct DetailHeader: View {
         HStack(spacing: 14) {
             ZStack {
                 RoundedRectangle(cornerRadius: 13, style: .continuous)
-                    .fill(tint.opacity(0.15))
+                    .fill(tint.opacity(0.12))
                     .frame(width: 50, height: 50)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 13, style: .continuous)
+                            .strokeBorder(Color.primary.opacity(0.07), lineWidth: 1)
+                    }
                 if let symbolText {
                     Text(symbolText)
                         .font(.system(size: 17, weight: .bold, design: .monospaced))
@@ -97,7 +101,8 @@ struct Pill: View {
     }
 }
 
-/// A monospaced port chip.
+/// A monospaced port chip. Live ports read a touch brighter than dormant ones;
+/// the row's status dot already carries the colour, so the chip stays neutral.
 struct PortChip: View {
     let text: String
     var highlighted: Bool = false
@@ -105,45 +110,101 @@ struct PortChip: View {
     var body: some View {
         Text(text)
             .font(.system(size: 11, weight: .medium, design: .monospaced))
-            .foregroundStyle(highlighted ? Color.accentColor : .secondary)
+            .foregroundStyle(highlighted ? Color.primary.opacity(0.75) : Color.secondary)
             .padding(.horizontal, 7)
             .padding(.vertical, 2)
             .background(
-                (highlighted ? Color.accentColor : Color.secondary).opacity(0.12),
+                Color.primary.opacity(highlighted ? 0.09 : 0.05),
                 in: RoundedRectangle(cornerRadius: 5)
             )
     }
 }
 
+/// A muted "glass" button: near-colorless at rest, taking on its accent only
+/// under the pointer. Used everywhere an action needs to be available without
+/// shouting — colour is reserved for the moment you're about to act.
+struct GlassButtonStyle: ButtonStyle {
+    /// The colour the button adopts on hover / press.
+    var accent: Color = .primary
+    var hovering: Bool = false
+    var cornerRadius: CGFloat = 8
+
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        let active = isEnabled && (hovering || configuration.isPressed)
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
+        return configuration.label
+            .foregroundStyle(active ? accent : Color.secondary)
+            .background {
+                shape.fill(active
+                           ? accent.opacity(configuration.isPressed ? 0.26 : 0.16)
+                           : Color.primary.opacity(0.06))
+            }
+            .overlay {
+                shape.strokeBorder(active ? accent.opacity(0.4) : Color.primary.opacity(0.09),
+                                   lineWidth: 1)
+            }
+            .opacity(isEnabled ? 1 : 0.4)
+            .animation(.easeOut(duration: 0.12), value: active)
+    }
+}
+
+/// Compact icon-only glass button for list rows and folder headers — the
+/// small sibling of `DetailActionButton`, with its own hover tracking so it
+/// only lights up when the pointer is on the button itself.
+struct GlassIconButton: View {
+    let systemImage: String
+    var accent: Color = .primary
+    var width: CGFloat = 22
+    var height: CGFloat = 19
+    var fontSize: CGFloat = 10
+    var help: String?
+    let action: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: fontSize, weight: .semibold))
+                .frame(width: width, height: height)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(GlassButtonStyle(accent: accent, hovering: hovering, cornerRadius: 6))
+        .onHover { hovering = $0 }
+        .help(help ?? "")
+    }
+}
+
 /// Icon-only action button for detail-pane action bars, shared by the
-/// container and port inspectors so both read consistently. Primary and
-/// destructive actions are `prominent` (solid colored fill); neutral utility
-/// actions (Logs, Restart, Copy) use a tinted bordered style.
+/// container and port inspectors so both read consistently. Every button sits
+/// quiet and grey until hovered; `prominent` actions then light up in their
+/// own colour (stop red, start green, kill orange), while neutral utility
+/// actions (Logs, Restart, Copy) merely brighten.
 struct DetailActionButton: View {
     let title: String
     let systemImage: String
-    var tint: Color = .accentColor
+    var tint: Color = .secondary
     var prominent: Bool = true
     let action: () -> Void
 
-    private var label: some View {
-        Image(systemName: systemImage)
-            .frame(width: 20)
-            .accessibilityLabel(title)
-    }
+    @State private var hovering = false
+
+    /// Neutral actions have no colour of their own — they just get brighter.
+    private var accent: Color { prominent ? tint : .primary }
 
     var body: some View {
-        Group {
-            if prominent {
-                Button(action: action) { label }
-                    .buttonStyle(.borderedProminent)
-                    .tint(tint)
-            } else {
-                Button(action: action) { label }
-                    .buttonStyle(.bordered)
-                    .tint(tint)
-            }
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .medium))
+                .frame(width: 24, height: 26)
+                .contentShape(Rectangle())
+                .accessibilityLabel(title)
         }
+        .buttonStyle(GlassButtonStyle(accent: accent, hovering: hovering))
+        .onHover { hovering = $0 }
         .help(title)
     }
 }

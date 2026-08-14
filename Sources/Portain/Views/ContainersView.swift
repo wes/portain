@@ -156,7 +156,7 @@ private struct FolderLabel: View {
         HStack(spacing: 7) {
             Image(systemName: "folder.fill")
                 .font(.system(size: 13))
-                .foregroundStyle(Color(nsColor: .systemBlue))
+                .foregroundStyle(.secondary)
             Text(name)
                 .font(.system(size: 13, weight: .medium))
                 .lineLimit(1)
@@ -193,14 +193,8 @@ private struct FolderLabel: View {
     }
 
     private func folderButton(_ icon: String, help: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 10, weight: .semibold))
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
-        .tint(.secondary)
-        .help(help)
+        GlassIconButton(systemImage: icon, accent: .primary,
+                        width: 20, height: 18, fontSize: 9, help: help, action: action)
     }
 }
 
@@ -347,13 +341,7 @@ private struct ContainerRow: View {
     }
 
     private func miniButton(_ icon: String, tint: Color = .secondary, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 10, weight: .semibold))
-        }
-        .buttonStyle(.bordered)
-        .controlSize(.small)
-        .tint(tint)
+        GlassIconButton(systemImage: icon, accent: tint, action: action)
     }
 }
 
@@ -407,7 +395,7 @@ struct ContainerDetail: View {
             Section {
                 DetailHeader(
                     symbol: "shippingbox.fill",
-                    tint: container.state.color,
+                    tint: .secondary,
                     title: container.name,
                     statusColor: container.state.color,
                     subtitle: container.status.isEmpty ? container.state.label : container.status,
@@ -435,7 +423,7 @@ struct ContainerDetail: View {
                                 Text(port.display).font(.system(.body, design: .monospaced))
                             } icon: {
                                 Image(systemName: port.isPublished ? "arrow.left.arrow.right" : "lock")
-                                    .foregroundStyle(port.isPublished ? Color.accentColor : .secondary)
+                                    .foregroundStyle(port.isPublished ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary))
                             }
                         }
                     }
@@ -494,7 +482,6 @@ struct ContainerDetail: View {
             Spacer()
             DetailActionButton(title: "Remove", systemImage: "trash", tint: .red) { state.perform(.remove, on: container) }
         }
-        .controlSize(.large)
         .disabled(busy)
     }
 }

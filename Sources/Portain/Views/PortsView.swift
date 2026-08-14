@@ -104,9 +104,9 @@ private struct PortProcessCell: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             if linkedContainer != nil {
-                Pill(text: "docker", color: .blue, systemImage: "shippingbox.fill")
+                Pill(text: "docker", color: .secondary, systemImage: "shippingbox.fill")
             } else if port.isDocker {
-                Pill(text: "docker", color: .blue)
+                Pill(text: "docker", color: .secondary)
             }
         }
     }
@@ -118,6 +118,7 @@ private struct PortActionsCell: View {
     let port: ListeningPort
     let state: AppState
     @State private var confirmKill = false
+    @State private var hovering = false
 
     var body: some View {
         Button(role: .destructive) {
@@ -125,9 +126,12 @@ private struct PortActionsCell: View {
         } label: {
             Image(systemName: "xmark.circle.fill")
                 .font(.system(size: 14))
-                .foregroundStyle(.red)
+                // Red only under the pointer — a table full of red is noise.
+                .foregroundStyle(hovering ? Color.red : Color.secondary)
+                .animation(.easeOut(duration: 0.12), value: hovering)
         }
         .buttonStyle(.borderless)
+        .onHover { hovering = $0 }
         .help("Kill process on this port")
         .contextMenu { PortActionsMenu(port: port, state: state) }
         .confirmationDialog(
@@ -208,7 +212,7 @@ struct PortDetail: View {
                 DetailHeader(
                     symbol: "network",
                     symbolText: "\(port.port)",
-                    tint: .accentColor,
+                    tint: .secondary,
                     title: linkedContainer?.name ?? port.command,
                     statusColor: port.isLocalOnly ? .secondary : .green,
                     subtitle: "\(port.proto) · \(port.scopeLabel)"
@@ -304,7 +308,6 @@ struct PortDetail: View {
             }
             Spacer()
         }
-        .controlSize(.large)
         .confirmationDialog(Text(verbatim: "Force kill PID \(port.pid)?"),
                             isPresented: $confirmForce, titleVisibility: .visible) {
             Button("Force Kill (SIGKILL)", role: .destructive) { state.killPort(port, force: true) }
